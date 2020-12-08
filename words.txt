@@ -1,0 +1,8 @@
+amazing
+awful
+bad
+cool
+good
+great
+nice
+terrible

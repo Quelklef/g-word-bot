@@ -12,9 +12,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+with open('./words.txt', 'r') as f:
+  prohibited_words = set(f.read().strip().split('\n'))
+
+
 def echo(update: Update, context: CallbackContext) -> None:
     """Echo the user message."""
-    if 'good' in update.message.text.split(' '):
+    if set(update.message.text.split(' ')) & prohibited_words > set():
       update.message.reply_text('watch ur language')
 
 
