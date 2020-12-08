@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import random
 import logging
 
 from telegram import Update
@@ -31,8 +32,13 @@ def get_bot_token():
 
 def echo(update: Update, context: CallbackContext) -> None:
     """Echo the user message."""
-    if set(update.message.text.split(' ')) & prohibited_words > set():
-      update.message.reply_text('watch ur language')
+    words = {word.lower() for word in update.message.text.split(' ')}
+    if words & prohibited_words > set():
+      update.message.reply_text(random.choice([
+        "could you phrase that in a way that takes accountability for your subjectivity thx :3",
+        "h-hey, gentle reminder that that word suggests objectivity, um...",
+        "such use of language can invalidate personal experience, just be careful. thanks~~",
+      ]))
 
 
 def main():
