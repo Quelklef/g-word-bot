@@ -2,10 +2,10 @@ const fs = require('fs');
 const { Telegraf } = require('telegraf');
 
 function getToken() {
-  if (fs.existsSync('./token'))
-    return fs.readFileSync('./token');
   if (process.env.G_WORD_BOT_TOKEN)
     return process.env.G_WORD_BOT_TOKEN;
+  if (fs.existsSync('./token'))
+    return fs.readFileSync('./token');
   throw Error('Missing Telegram token. Please write one to ./token or set G_WORD_BOT_TOKEN.')
 }
 
