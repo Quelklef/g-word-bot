@@ -13,7 +13,7 @@ const bot = new Telegraf(getToken());
 
 bot.on('text', ctx => {
   const text = ctx.update.message.text;
-  if (text.includes('good'))
+  if (text.includes('good') || text.includes('Good') || text.includes('GOod') || text.includes('GoOd') || text.includes('GooD'))
     ctx.reply('No using the g-word!', { reply_to_message_id: ctx.update.message.message_id });
 });
 
