@@ -1,6 +1,4 @@
-{ pkgs
-, token ? builtins.readFile ./token
-}:
+{ token }:
 
 {
   systemd.services.g-word-bot = {
@@ -9,7 +7,7 @@
     wantedBy = [ "default.target" ];
     script = ''
       export G_WORD_BOT_TOKEN=$(cat /run/keys/g-word-bot-telegram-token)
-      ${import ./default.nix { inherit pkgs; }}/run.sh
+      ${import ./default.nix {}}/run.sh
     '';
     serviceConfig = {
       Type = "simple";
