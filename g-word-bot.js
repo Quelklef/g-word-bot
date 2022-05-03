@@ -32,6 +32,8 @@ bot.on('text', ctx => {
   const text = ctx.update.message.text;
   const hasGWord = /(\W|^)good(\W|$)/gi.test(text);
 
+  // console.log(ctx.update.message);
+
   if (hasGWord) {
     ctx.reply('No using the g-word!', { reply_to_message_id: ctx.update.message.message_id });
   }
@@ -52,7 +54,7 @@ bot.on('text', ctx => {
   // Update statistics
   withState(state => {
     const fromUserId = ctx.update.message.from.id;
-    const fromUserName = ctx.update.message.from.username;
+    const fromUserName = ctx.update.message.from.username ?? ctx.update.message.from.first_name ?? '<unknown>';
     const chatId = ctx.update.message.chat.id;
 
     state.counts ??= {};
