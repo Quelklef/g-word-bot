@@ -49,8 +49,13 @@ bot.on('text', ctx => {
       Object.entries(state.counts[chatId] ?? {})
       .map(([userId, { gWordCount, messageCount }]) => {
         const userName = state.users[userId].displayName;
-        return `${userName}: ${gWordCount} violations in ${messageCount} messages`;
-      }).join('\n')
+        const score = -1 * Math.round(Math.sqrt(gWordCount / messageCount) * 100);  // monotonic wrt percentage
+        const str = `${userName}: ${score}, ${gWordCount} violations in ${messageCount} messages`;
+        return { str, score }
+      })
+      .sort((a, b) => a.score - b.score)
+      .map(a => a.str)
+      .join('\n')
     );
     ctx.reply(response, { reply_to_message_id: ctx.update.message.message_id });
   }
@@ -58,7 +63,7 @@ bot.on('text', ctx => {
   // Update statistics
   withState(state => {
     const fromUserId = ctx.update.message.from.id;
-    const fromUserName = ctx.update.message.from.username ?? ctx.update.message.from.first_name ?? '<unknown>';
+    const fromUserName = ctx.update.message.from.first_name ?? ctx.update.message.from.username ?? '<unknown>';
     const chatId = ctx.update.message.chat.id;
 
     state.counts ??= {};
