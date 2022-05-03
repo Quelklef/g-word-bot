@@ -7,6 +7,7 @@
     wantedBy = [ "default.target" ];
     script = ''
       export G_WORD_BOT_TOKEN=$(cat /run/keys/g-word-bot-telegram-token)
+      export G_WORD_BOT_STATEFILE_LOC=/var/lib/g-word-bot-state.json
       ${import ./default.nix {}}/run.sh
     '';
     serviceConfig = {

@@ -9,11 +9,15 @@ function getToken() {
 
 const bot = new Telegraf(getToken());
 
-// database master 😎
-// nb. Since I deploy with nixops, this is absolutely terrible
-//     state management. Luckily, I don't care that much
+const stateFileLoc = (
+  process.env.G_WORD_BOT_STATEFILE_LOC
+  || require('path').resolve(process.env.PWD, 'state.json')
+);
+
+console.log('Using statefile at', stateFileLoc);
+
 function withState(fun) {
-  const floc = './state.json';
+  const floc = stateFileLoc;
   if (!fs.existsSync(floc))
     fs.writeFileSync(floc, '{}');
   let state = JSON.parse(fs.readFileSync(floc));
