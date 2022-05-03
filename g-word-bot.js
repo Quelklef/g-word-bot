@@ -34,7 +34,7 @@ function getCurrentState() {
 bot.on('text', ctx => {
 
   const text = ctx.update.message.text;
-  const hasGWord = /(\W|^)good(\W|$)/gi.test(text);
+  const hasGWord = /\bgood\b/gi.test(text);
 
   // console.log(ctx.update.message);
 
