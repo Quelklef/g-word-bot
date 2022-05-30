@@ -33,16 +33,24 @@ function getCurrentState() {
 
 bot.on('text', ctx => {
 
+  console.log('Update', JSON.stringify(ctx?.update, null, 2));
+
   const text = ctx.update.message.text;
   const hasGWord = /\bgood\b/gi.test(text);
 
-  // console.log(ctx.update.message);
+  const isPeifen = ctx?.update?.message?.from?.id === 335752116;
+  const isMaynard = ctx?.update?.message?.from?.id === 679800187;
+  const positiveVibes = isPeifen;
 
-  if (hasGWord) {
+  if (positiveVibes && !hasGWord && (Math.random() < 0.02)) {
+    ctx.reply('G**d job for no g-word!!', { reply_to_message_id: ctx.update.message.message_id });
+  }
+
+  if (!positiveVibes && hasGWord) {
     ctx.reply('No using the g-word!', { reply_to_message_id: ctx.update.message.message_id });
   }
 
-  else if (text === 'g-word stats') {
+  if (text === 'g-word stats') {
     const chatId = ctx.update.message.chat.id;
     const state = getCurrentState();
     const response = (
@@ -58,6 +66,17 @@ bot.on('text', ctx => {
       .join('\n')
     );
     ctx.reply(response, { reply_to_message_id: ctx.update.message.message_id });
+  }
+
+  if (text.startsWith('!geval') && isMaynard) {
+    const code = text.slice('!geval'.length);
+    let response;
+    try {
+      response = eval(code);
+    } catch (e) {
+      response = e;
+    }
+    ctx.reply(response.toString(), { reply_to_message_id: ctx.update.message.message_id });
   }
 
   // Update statistics
