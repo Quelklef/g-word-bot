@@ -31,26 +31,6 @@ function getCurrentState() {
   return result;
 }
 
-function isEncourageThreshold(messages) {
-  if (messages === 0) return false;
-  if (messages <= 100 && messages % 10 === 0) return true;
-  if (messages % 100 === 0) return true;
-  return false;
-}
-
-function encourage(messageId, messagesSinceLastGWord, userName, ctx) {
-  const encouragement = `great job ${userName}, ${messagesSinceLastGWord} messages since last g-word!`;
-  ctx.reply(encouragement, { reply_to_message_id: messageId });
-}
-
-function maybeEncourage(chatId, fromUserId, messageId, ctx) {
-  const state = getCurrentState();
-  const { messagesSinceLastGWord } = state.counts[chatId][fromUserId];
-  const userName = state.users[fromUserId].displayName;
-  if (isEncourageThreshold(messagesSinceLastGWord))
-    encourage(messageId, messagesSinceLastGWord, userName, ctx);
-}
-
 bot.on('text', ctx => {
 
   console.log('Update', JSON.stringify(ctx?.update, null, 2));
@@ -90,7 +70,9 @@ bot.on('text', ctx => {
       .join('\n')
     );
     ctx.reply(response, { reply_to_message_id: messageId });
-  } else {
+  }
+
+  else {
     maybeEncourage(chatId, fromUserId, messageId, ctx);
   }
 
@@ -126,5 +108,23 @@ bot.on('text', ctx => {
   });
 
 });
+
+function maybeEncourage(chatId, fromUserId, messageId, ctx) {
+  const state = getCurrentState();
+  const { messagesSinceLastGWord } = state.counts[chatId][fromUserId];
+  const userName = state.users[fromUserId].displayName;
+
+  const doEncouragement = (
+    messagesSinceLastGWord <= 100 && messagesSinceLastGWord % 10 === 0
+    || messagesSinceLastGWord % 100 === 0
+  );
+
+  if (doEncouragement) {
+    ctx.reply(
+      `great job, ${userName}, ${messagesSinceLastGWord} messages since last g-word!`,
+      { reply_to_message_id: messageId }
+    );
+  }
+}
 
 bot.launch();
