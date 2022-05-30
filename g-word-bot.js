@@ -47,10 +47,10 @@ bot.on('text', ctx => {
     const state = getCurrentState();
     const response = (
       Object.entries(state.counts[chatId] ?? {})
-      .map(([userId, { gWordCount, messageCount }]) => {
+      .map(([userId, { gWordCount, messageCount, messagesSinceLastGWord }]) => {
         const userName = state.users[userId].displayName;
         const score = -1 * Math.round(Math.sqrt(gWordCount / messageCount) * 100);  // monotonic wrt percentage
-        const str = `${userName}: ${score}, ${gWordCount} violations in ${messageCount} messages`;
+        const str = `${userName}: ${score}, ${gWordCount} violations in ${messageCount} messages, ${messagesSinceLastGWord} messages since last use of g-word`;
         return { str, score }
       })
       .sort((a, b) => a.score - b.score)
