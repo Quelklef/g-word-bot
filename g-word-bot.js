@@ -31,6 +31,26 @@ function getCurrentState() {
   return result;
 }
 
+function isEncourageThreshold(messages) {
+  if (messages === 0) return false;
+  if (messages <= 100 && messages % 10 === 0) return true;
+  if (messages % 100 === 0) return true;
+  return false;
+}
+
+function encourage(messageId, messagesSinceLastGWord, userName) {
+  const encouragement = `great job ${userName}, ${messagesSinceLastGWord} messages since last g-word!`;
+  ctx.reply(encouragement, { reply_to_message_id: messageId });
+}
+
+function maybeEncourage(chatId, fromUserId, messageId) {
+  const state = getCurrentState();
+  const { messagesSinceLastGWord } = state.counts[chatId][fromUserId];
+  const userName = state.users[fromUserId].displayName;
+  if (isEncourageThreshold(messagesSinceLastGWord))
+    encourage(messageId, messagesSinceLastGWord, userName);
+}
+
 bot.on('text', ctx => {
 
   const text = ctx.update.message.text;
@@ -38,12 +58,15 @@ bot.on('text', ctx => {
 
   // console.log(ctx.update.message);
 
+  const messageId = ctx.update.message.message_id;
+  const chatId = ctx.update.message.chat.id;
+  const fromUserId = ctx.update.message.from.id;
+
   if (hasGWord) {
-    ctx.reply('No using the g-word!', { reply_to_message_id: ctx.update.message.message_id });
+    ctx.reply('No using the g-word!', { reply_to_message_id: messageId });
   }
 
   else if (text === 'g-word stats') {
-    const chatId = ctx.update.message.chat.id;
     const state = getCurrentState();
     const response = (
       Object.entries(state.counts[chatId] ?? {})
@@ -57,12 +80,13 @@ bot.on('text', ctx => {
       .map(a => a.str)
       .join('\n')
     );
-    ctx.reply(response, { reply_to_message_id: ctx.update.message.message_id });
+    ctx.reply(response, { reply_to_message_id: messageId });
+  } else {
+    maybeEncourage(chatId, fromUserId, messageId);
   }
 
   // Update statistics
   withState(state => {
-    const fromUserId = ctx.update.message.from.id;
     const fromUserName = ctx.update.message.from.first_name ?? ctx.update.message.from.username ?? '<unknown>';
     const chatId = ctx.update.message.chat.id;
 
