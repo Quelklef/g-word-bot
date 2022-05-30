@@ -39,7 +39,10 @@ bot.on('text', ctx => {
   // console.log(ctx.update.message);
 
   if (hasGWord) {
-    ctx.reply('No using the g-word!', { reply_to_message_id: ctx.update.message.message_id });
+    ctx.reply(
+      'considering using more subjective language: "I like"',
+      { reply_to_message_id: ctx.update.message.message_id }
+    );
   }
 
   else if (text === 'g-word stats') {
