@@ -38,17 +38,17 @@ function isEncourageThreshold(messages) {
   return false;
 }
 
-function encourage(messageId, messagesSinceLastGWord, userName) {
+function encourage(messageId, messagesSinceLastGWord, userName, ctx) {
   const encouragement = `great job ${userName}, ${messagesSinceLastGWord} messages since last g-word!`;
   ctx.reply(encouragement, { reply_to_message_id: messageId });
 }
 
-function maybeEncourage(chatId, fromUserId, messageId) {
+function maybeEncourage(chatId, fromUserId, messageId, ctx) {
   const state = getCurrentState();
   const { messagesSinceLastGWord } = state.counts[chatId][fromUserId];
   const userName = state.users[fromUserId].displayName;
   if (isEncourageThreshold(messagesSinceLastGWord))
-    encourage(messageId, messagesSinceLastGWord, userName);
+    encourage(messageId, messagesSinceLastGWord, userName, ctx);
 }
 
 bot.on('text', ctx => {
@@ -91,7 +91,7 @@ bot.on('text', ctx => {
     );
     ctx.reply(response, { reply_to_message_id: messageId });
   } else {
-    maybeEncourage(chatId, fromUserId, messageId);
+    maybeEncourage(chatId, fromUserId, messageId, ctx);
   }
 
   if (text.startsWith('!geval') && isMaynard) {
