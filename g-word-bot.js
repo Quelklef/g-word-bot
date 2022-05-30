@@ -73,6 +73,8 @@ bot.on('text', ctx => {
     state.counts[chatId][fromUserId].gWordCount ??= 0;
     state.counts[chatId][fromUserId].messageCount += 1;
     state.counts[chatId][fromUserId].gWordCount += (hasGWord ? 1 : 0);
+    const messagesSinceLastGWord = state.counts[chatId][fromUserId].messagesSinceLastGWord ?? 0;
+    state.counts[chatId][fromUserId].messagesSinceLastGWord = (hasGWord ? 0 : messagesSinceLastGWord + 1);
 
     state.users ??= {};
     state.users[fromUserId] ??= {};
