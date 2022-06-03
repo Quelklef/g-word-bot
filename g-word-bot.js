@@ -1,5 +1,6 @@
 const fs = require('fs');
 const { Telegraf } = require('telegraf');
+const { Endog } = require('skim').endog;
 
 function getToken() {
   if (process.env.G_WORD_BOT_TOKEN)
@@ -9,54 +10,100 @@ function getToken() {
 
 const bot = new Telegraf(getToken());
 
-const stateFileLoc = (
-  process.env.G_WORD_BOT_STATEFILE_LOC
-  || require('path').resolve(process.env.PWD, 'state.json')
-);
+const endog = new Endog({
 
-console.log('Using statefile at', stateFileLoc);
+  logloc: process.env.G_WORD_BOT_JOURNAL_LOC,
 
-function withState(fun) {
-  const floc = stateFileLoc;
-  if (!fs.existsSync(floc))
-    fs.writeFileSync(floc, '{}');
-  let state = JSON.parse(fs.readFileSync(floc));
-  fun(state);
-  fs.writeFileSync(floc, JSON.stringify(state, null, 2));
+  tolerance: 5 * 1000,
+
+  getTime(ev) {
+    return new Date(ev.time);
+  },
+
+  exec(state, ev) {
+
+    if (ev.kind === 'set-state') {
+      for (k in state) delete state[k];
+      Object.assign(state, ev.payload);
+    }
+
+    else if (ev.kind === 'tg-update') {
+      const { update } = ev;
+
+      const { fromUserId, fromUserName, chatId, hasGWord } = processUpdate(update);
+
+      state.counts ??= {};
+      state.counts[chatId] ??= {};
+      state.counts[chatId][fromUserId] ??= {};
+      state.counts[chatId][fromUserId].messageCount ??= 0;
+      state.counts[chatId][fromUserId].gWordCount ??= 0;
+      state.counts[chatId][fromUserId].messageCount += 1;
+      state.counts[chatId][fromUserId].gWordCount += (hasGWord ? 1 : 0);
+      const messagesSinceLastGWord = state.counts[chatId][fromUserId].messagesSinceLastGWord ?? 0;
+      state.counts[chatId][fromUserId].messagesSinceLastGWord = (hasGWord ? 0 : messagesSinceLastGWord + 1);
+
+      state.users ??= {};
+      state.users[fromUserId] ??= {};
+      state.users[fromUserId].displayName = fromUserName;
+    }
+
+    else {
+      throw Error(`Unknown event kind ${ev.kind}`);
+    }
+
+  },
+
+});
+
+
+const legacyStatefileLoc = process.env.G_WORD_BOT_LEGACY_STATEFILE_LOC;
+if (!endog.state.migratedToEndog) {
+  const oldState = JSON.parse(fs.readFileSync(legacyStatefileLoc).toString());
+  const state0 = { ...oldState, migratedToEndog: true };
+  endog.push({ kind: 'set-state', time: Date.now(), payload: state0 });
+}
+if (legacyStatefileLoc) {
+  console.warn(`[WARN] Migration to endog complete. G_WORD_BOT_LEGACY_STATEFILE_LOC can be unset.`);
 }
 
-function getCurrentState() {
-  let result;
-  withState(state => result = state);  // state monad be like
-  return result;
+
+function processUpdate(update) {
+  const text = update.message.text;
+  const hasGWord = /\bgood\b/gi.test(text);
+
+  const isPeifen = update?.message?.from?.id === 335752116;
+  const isMaynard = update?.message?.from?.id === 679800187;
+  const positiveVibes = isPeifen;
+
+  const messageId = update.message.message_id;
+  const chatId = update.message.chat.id;
+  const fromUserId = update.message.from.id;
+  const fromUserName = update.message.from.first_name ?? update.message.from.username ?? '<unknown>';
+
+  return { text, hasGWord, isPeifen, isMaynard, positiveVibes, messageId, chatId, fromUserId, fromUserName };
 }
+
 
 bot.on('text', ctx => {
 
-  console.log('Update', JSON.stringify(ctx?.update, null, 2));
+  const { update } = ctx;
 
-  const text = ctx.update.message.text;
-  const hasGWord = /\bgood\b/gi.test(text);
+  console.log('Update', JSON.stringify(update, null, 2));
+  endog.push({ kind: 'tg-update', time: Date.now(), update });
 
-  const isPeifen = ctx?.update?.message?.from?.id === 335752116;
-  const isMaynard = ctx?.update?.message?.from?.id === 679800187;
-  const positiveVibes = isPeifen;
-
-  const messageId = ctx.update.message.message_id;
-  const chatId = ctx.update.message.chat.id;
-  const fromUserId = ctx.update.message.from.id;
+  const { text, hasGWord, isMaynard, positiveVibes, messageId, chatId, fromUserId }
+        = processUpdate(update);
 
   if (positiveVibes && !hasGWord && (Math.random() < 0.02)) {
-    ctx.reply('G**d job for no g-word!!', { reply_to_message_id: ctx.update.message.message_id });
+    ctx.reply('G**d job for no g-word!!', { reply_to_message_id: update.message.message_id });
   }
 
   if (!positiveVibes && hasGWord) {
-    ctx.reply('No using the g-word!', { reply_to_message_id: ctx.update.message.message_id });
+    ctx.reply('No using the g-word!', { reply_to_message_id: update.message.message_id });
   }
 
   if (text === 'g-word stats') {
-    const chatId = ctx.update.message.chat.id;
-    const state = getCurrentState();
+    const state = endog.state;
     const response = (
       Object.entries(state.counts[chatId] ?? {})
       .map(([userId, { gWordCount, messageCount, messagesSinceLastGWord }]) => {
@@ -72,10 +119,6 @@ bot.on('text', ctx => {
     ctx.reply(response, { reply_to_message_id: messageId });
   }
 
-  else {
-    maybeEncourage(chatId, fromUserId, messageId, ctx);
-  }
-
   if (text.startsWith('!geval') && isMaynard) {
     const code = text.slice('!geval'.length);
     let response;
@@ -84,39 +127,21 @@ bot.on('text', ctx => {
     } catch (e) {
       response = e;
     }
-    ctx.reply(response.toString(), { reply_to_message_id: ctx.update.message.message_id });
+    ctx.reply(response.toString(), { reply_to_message_id: update.message.message_id });
   }
 
-  // Update statistics
-  withState(state => {
-    const fromUserName = ctx.update.message.from.first_name ?? ctx.update.message.from.username ?? '<unknown>';
-    const chatId = ctx.update.message.chat.id;
-
-    state.counts ??= {};
-    state.counts[chatId] ??= {};
-    state.counts[chatId][fromUserId] ??= {};
-    state.counts[chatId][fromUserId].messageCount ??= 0;
-    state.counts[chatId][fromUserId].gWordCount ??= 0;
-    state.counts[chatId][fromUserId].messageCount += 1;
-    state.counts[chatId][fromUserId].gWordCount += (hasGWord ? 1 : 0);
-    const messagesSinceLastGWord = state.counts[chatId][fromUserId].messagesSinceLastGWord ?? 0;
-    state.counts[chatId][fromUserId].messagesSinceLastGWord = (hasGWord ? 0 : messagesSinceLastGWord + 1);
-
-    state.users ??= {};
-    state.users[fromUserId] ??= {};
-    state.users[fromUserId].displayName = fromUserName;
-  });
+  maybeEncourage(chatId, fromUserId, messageId, ctx);
 
 });
 
 function maybeEncourage(chatId, fromUserId, messageId, ctx) {
-  const state = getCurrentState();
+  const state = endog.state;
   const { messagesSinceLastGWord } = state.counts[chatId][fromUserId];
   const userName = state.users[fromUserId].displayName;
 
   const doEncouragement = (
-    messagesSinceLastGWord <= 100 && messagesSinceLastGWord % 10 === 0
-    || messagesSinceLastGWord % 100 === 0
+    messagesSinceLastGWord <= 150 && messagesSinceLastGWord % 25 === 0
+    || messagesSinceLastGWord % 150 === 0
   );
 
   if (doEncouragement) {
