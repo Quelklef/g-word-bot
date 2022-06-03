@@ -12,6 +12,9 @@ function main() {
   bot.launch();
 }
 
+// TODO: an endog-telegraf package would be nice, giving the invariant that all events
+//       are either in endog or in the telegram server, ie, if we fail to .push() a tg
+//       event then it stays in the server
 
 const endog = new Endog({
 
