@@ -2,13 +2,16 @@ const fs = require('fs');
 const { Telegraf } = require('telegraf');
 const { Endog } = require('skim').endog;
 
-function getToken() {
+const bot = new Telegraf(function() {
   if (process.env.G_WORD_BOT_TOKEN)
     return process.env.G_WORD_BOT_TOKEN;
   throw Error('Missing Telegram token. Please set G_WORD_BOT_TOKEN. (maybe try again in a nix-shell)')
+}());
+
+function main() {
+  bot.launch();
 }
 
-const bot = new Telegraf(getToken());
 
 const endog = new Endog({
 
@@ -56,14 +59,16 @@ const endog = new Endog({
 });
 
 
-const legacyStatefileLoc = process.env.G_WORD_BOT_LEGACY_STATEFILE_LOC;
-if (!endog.state.migratedToEndog) {
-  const oldState = JSON.parse(fs.readFileSync(legacyStatefileLoc).toString());
-  const state0 = { ...oldState, migratedToEndog: true };
-  endog.push({ kind: 'set-state', time: Date.now(), payload: state0 });
-}
-if (legacyStatefileLoc) {
-  console.warn(`[WARN] Migration to endog complete. G_WORD_BOT_LEGACY_STATEFILE_LOC can be unset.`);
+{  // Handle migration to endog
+  const legacyStatefileLoc = process.env.G_WORD_BOT_LEGACY_STATEFILE_LOC;
+  if (!endog.state.migratedToEndog) {
+    const oldState = JSON.parse(fs.readFileSync(legacyStatefileLoc).toString());
+    const state0 = { ...oldState, migratedToEndog: true };
+    endog.push({ kind: 'set-state', time: Date.now(), payload: state0 });
+  }
+  if (legacyStatefileLoc) {
+    console.warn(`[WARN] Migration to endog complete. G_WORD_BOT_LEGACY_STATEFILE_LOC can be unset.`);
+  }
 }
 
 
@@ -90,8 +95,9 @@ bot.on('text', ctx => {
 
   console.log('Update', JSON.stringify(update, null, 2));
   endog.push({ kind: 'tg-update', time: Date.now(), update });
+  const state = endog.state;
 
-  const { text, hasGWord, isMaynard, positiveVibes, messageId, chatId, fromUserId }
+  const { text, hasGWord, isMaynard, positiveVibes, messageId, chatId, fromUserId, fromUserName }
         = processUpdate(update);
 
   if (positiveVibes && !hasGWord && (Math.random() < 0.02)) {
@@ -103,7 +109,6 @@ bot.on('text', ctx => {
   }
 
   if (text === 'g-word stats') {
-    const state = endog.state;
     const response = (
       Object.entries(state.counts[chatId] ?? {})
       .map(([userId, { gWordCount, messageCount, messagesSinceLastGWord }]) => {
@@ -130,26 +135,19 @@ bot.on('text', ctx => {
     ctx.reply(response.toString(), { reply_to_message_id: update.message.message_id });
   }
 
-  maybeEncourage(chatId, fromUserId, messageId, ctx);
-
-});
-
-function maybeEncourage(chatId, fromUserId, messageId, ctx) {
-  const state = endog.state;
   const { messagesSinceLastGWord } = state.counts[chatId][fromUserId];
-  const userName = state.users[fromUserId].displayName;
-
   const doEncouragement = (
     messagesSinceLastGWord <= 150 && messagesSinceLastGWord % 25 === 0
     || messagesSinceLastGWord % 150 === 0
   );
-
   if (doEncouragement) {
     ctx.reply(
-      `great job, ${userName}, ${messagesSinceLastGWord} messages since last g-word!`,
+      `great job, ${fromUserName}, ${messagesSinceLastGWord} messages since last g-word!`,
       { reply_to_message_id: messageId }
     );
   }
-}
 
-bot.launch();
+});
+
+
+main();
