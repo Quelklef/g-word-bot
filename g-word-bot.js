@@ -164,7 +164,7 @@ bot.on('text', async ctx => {
 
     let parsed = null;
     parse: {
-      const parts = text.split(' ');
+      const parts = text.split(' ').filter(part => !!part);
       if (parts.length < 3) break parse;
       const [fst, snd, thd, ...rest] = parts;
       if (fst !== '!infer' || snd !== 'from' || !thd.startsWith('@')) break parse;
