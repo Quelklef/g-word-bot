@@ -41,7 +41,7 @@ const endog = new Endog({
     else if (ev.kind === 'tg-update') {
       const { update } = ev;
 
-      const { text, fromUserId, fromUserName, fromUsername, chatId, hasGWord } = processUpdate(update);
+      const { text, fromUserId, fromUserName, fromPingName, chatId, hasGWord } = processUpdate(update);
 
       state.counts ??= {};
       state.counts[chatId] ??= {};
@@ -59,7 +59,7 @@ const endog = new Endog({
 
       state.inferKitPrompt ??= '';
       if (!text.startsWith('!')) {  // exclude g-word bot commands
-        state.inferKitPrompt += `\n${fromUsername}: ${text}`;
+        state.inferKitPrompt += `\n${fromPingName}: ${text}`;
         state.inferKitPrompt = state.inferKitPrompt.slice(-5000);  // inferkit uses a limited number of chars
       }
     }
@@ -98,9 +98,10 @@ function processUpdate(update) {
   const chatId = update.message.chat.id;
   const fromUserId = update.message.from.id;
   const fromUserName = update.message.from.first_name ?? update.message.from.username ?? '<unknown>';
-  const fromUsername = update?.message?.from?.username;
+  const fromPingName = update?.message?.from?.username ?? update?.message?.from?.first_name;
+    // ^ "ping name", ie, what they will be called when you @ them
 
-  return { text, hasGWord, isPeifen, isMaynard, positiveVibes, messageId, chatId, fromUserId, fromUserName, fromUsername };
+  return { text, hasGWord, isPeifen, isMaynard, positiveVibes, messageId, chatId, fromUserId, fromUserName, fromPingName };
 }
 
 
