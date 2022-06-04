@@ -57,10 +57,12 @@ const endog = new Endog({
       state.users[fromUserId] ??= {};
       state.users[fromUserId].displayName = fromUserName;
 
-      state.inferKitPrompt ??= '';
+      delete state.inferKitPrompt;
+      state.ikPrompts ??= {};
       if (!text.startsWith('!')) {  // exclude g-word bot commands
-        state.inferKitPrompt += `\n${fromPingName}: ${text}`;
-        state.inferKitPrompt = state.inferKitPrompt.slice(-5000);  // inferkit uses a limited number of chars
+        state.ikPrompts[chatId] ??= '';
+        state.ikPrompts[chatId] += `\n${fromPingName}: ${text}`;
+        state.ikPrompts[chatId] = state.ikPrompts[chatId].slice(-5000);  // inferkit uses a limited number of chars
       }
     }
 
@@ -169,7 +171,7 @@ bot.on('text', async ctx => {
 
       const target = thd.slice(1);
 
-      const prompt = (state.inferKitPrompt + `\n${target}: `).slice(-3000);
+      const prompt = (state.ikPrompts[chatId] + `\n${target}: `).slice(-3000);
 
       let opts;
       try {
