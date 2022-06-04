@@ -58,8 +58,10 @@ const endog = new Endog({
       state.users[fromUserId].displayName = fromUserName;
 
       state.inferKitPrompt ??= '';
-      state.inferKitPrompt += `\n${fromUsername}: ${text}`;
-      state.inferKitPrompt = state.inferKitPrompt.slice(-5000);  // inferkit uses a limited number of chars
+      if (!text.startsWith('!')) {  // exclude g-word bot commands
+        state.inferKitPrompt += `\n${fromUsername}: ${text}`;
+        state.inferKitPrompt = state.inferKitPrompt.slice(-5000);  // inferkit uses a limited number of chars
+      }
     }
 
     else {
