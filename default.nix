@@ -13,7 +13,7 @@ node_modules = let
         cp $src/package{,-lock}.json $out
         sed -i $out/package-lock.json \
             -e 's|git+ssh://git@github.com/quelklef/skim.git|github:quelklef/skim|' \
-            -e 's|VhwvUmfou+KgEGb5JHHCurbMwaxko4NE0xhkEiHBJpTCzUyyx/UmrVUonC7qq3Hcqa5WU4u20KqcjOdbgsBrIA==|lD62QNhuSfsSCZqvYe3DQuweCZnmhJgjesRfVv4QDgBpQmqcSh6ScHTqfs89HiZZqWqugrUHOzFcBWwNmkYXHw==|'
+            -e 's|N6xdM6/R9AmNgYZPaF6xiHWoh1DubAiDfM6VkLqXjtcDVqYism+ETO4eNtQV7aKUX2b3ZJ2XDf7/w7G8zbtfBA==|tRInJr5wJD21o+zlqdmdLhgEUxf9L1KY/G8cGlZVB3tpI15mpqtZMqSKkDJVaEy3I4lR2lOcWNIALVj14+wSEg==|'
         # yuck!
       '';
     };

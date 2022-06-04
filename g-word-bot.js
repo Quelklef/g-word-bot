@@ -73,6 +73,10 @@ const endog = new Endog({
 });
 
 
+console.dir(endog.state, { depth: null });
+console.log('Loaded. Current state above');
+
+
 {  // Handle migration to endog
   const legacyStatefileLoc = process.env.G_WORD_BOT_LEGACY_STATEFILE_LOC;
   if (!endog.state.migratedToEndog) {
