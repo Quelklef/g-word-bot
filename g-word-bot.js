@@ -197,7 +197,7 @@ bot.on('text', async ctx => {
     }
 
     if (continuation !== null)
-      ctx.reply(`${target}: ${continuation}`);
+      ctx.reply(`${target}: ${continuation}`, { reply_to_message_id: update.message.message_id });
   }
 
   const { messagesSinceLastGWord } = state.counts[chatId][fromUserId];
