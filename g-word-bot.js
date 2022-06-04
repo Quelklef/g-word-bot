@@ -2,6 +2,11 @@ const fs = require('fs');
 const { Telegraf } = require('telegraf');
 const { Endog } = require('skim').endog;
 
+async function fetch(...args) {
+  const { default: fetch } = await import('node-fetch');
+  return await fetch(...args);
+}
+
 const bot = new Telegraf(function() {
   if (process.env.G_WORD_BOT_TOKEN)
     return process.env.G_WORD_BOT_TOKEN;
@@ -36,7 +41,7 @@ const endog = new Endog({
     else if (ev.kind === 'tg-update') {
       const { update } = ev;
 
-      const { fromUserId, fromUserName, chatId, hasGWord } = processUpdate(update);
+      const { text, fromUserId, fromUserName, fromUsername, chatId, hasGWord } = processUpdate(update);
 
       state.counts ??= {};
       state.counts[chatId] ??= {};
@@ -51,6 +56,10 @@ const endog = new Endog({
       state.users ??= {};
       state.users[fromUserId] ??= {};
       state.users[fromUserId].displayName = fromUserName;
+
+      state.inferKitPrompt ??= '';
+      state.inferKitPrompt += `\n${fromUsername}: ${text}`;
+      state.inferKitPrompt = state.inferKitPrompt.slice(-5000);  // inferkit uses a limited number of chars
     }
 
     else {
@@ -87,12 +96,13 @@ function processUpdate(update) {
   const chatId = update.message.chat.id;
   const fromUserId = update.message.from.id;
   const fromUserName = update.message.from.first_name ?? update.message.from.username ?? '<unknown>';
+  const fromUsername = update?.message?.from?.username;
 
-  return { text, hasGWord, isPeifen, isMaynard, positiveVibes, messageId, chatId, fromUserId, fromUserName };
+  return { text, hasGWord, isPeifen, isMaynard, positiveVibes, messageId, chatId, fromUserId, fromUserName, fromUsername };
 }
 
 
-bot.on('text', ctx => {
+bot.on('text', async ctx => {
 
   const { update } = ctx;
 
@@ -138,6 +148,55 @@ bot.on('text', ctx => {
     ctx.reply(response.toString(), { reply_to_message_id: update.message.message_id });
   }
 
+  // command
+  // !infer from @<username>
+  // !infer from @<username> { length: integer }
+  infer: if (text.startsWith('!infer')) {
+
+    let parsed = null;
+    parse: {
+      const parts = text.split(' ');
+      if (parts.length < 3) break parse;
+      const [fst, snd, thd, ...rest] = parts;
+      if (fst !== '!infer' || snd !== 'from' || !thd.startsWith('@')) break parse;
+
+      const target = thd.slice(1);
+
+      const prompt = (state.inferKitPrompt + `\n${target}: `).slice(-3000);
+
+      let opts;
+      try {
+        opts = JSON.parse(rest.join(' ') || 'null');
+      } catch (e) {
+        break parse;
+      }
+      const length = opts?.length ?? 35;
+
+      parsed = { target, prompt, length };
+    }
+
+    if (parsed === null) {
+      ctx.reply('Bad invocation!', { reply_to_message_id: update.message.message_id });
+      break infer;
+    }
+
+    const { target, prompt, length } = parsed;
+
+    let continuation = null;
+    try {
+      continuation = await inferText(prompt, length);
+    } catch (e) {
+      console.error('error when calling inferText', e);
+      ctx.reply(
+        'Unable to infer. This could be a bug, or g-word bot could be out of weekly free InferKit credits.',
+        { reply_to_message_id: update.message.message_id },
+      );
+    }
+
+    if (continuation !== null)
+      ctx.reply(`${target}: ${continuation}`);
+  }
+
   const { messagesSinceLastGWord } = state.counts[chatId][fromUserId];
   const doEncouragement = (
     messagesSinceLastGWord <= 150 && messagesSinceLastGWord % 25 === 0
@@ -152,5 +211,32 @@ bot.on('text', ctx => {
 
 });
 
+
+/* Use the magic of AI to continue some text
+   Uses up free weekly credits on inferkit.com */
+async function inferText(text, length = 35) {
+  const request = {
+    method: "POST",
+    body: JSON.stringify({
+      streamResponse: false,
+      prompt: { text, isContinuation: true },
+      length,
+    }),
+  };
+  log('inferKit request', request);
+  const response = await fetch(
+    "https://api.inferkit.com/v1/models/standard/generate?useDemoCredits=true",
+    request,
+  );
+  const result = JSON.parse(await response.text());
+  log('inferKit response', result);
+  return result.data.text;
+}
+
+
+function log(label, obj) {
+  console.log(label + ' ↓');
+  console.dir(obj, { depth: null });
+}
 
 main();

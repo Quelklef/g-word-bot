@@ -33,7 +33,6 @@ in pkgs.stdenv.mkDerivation {
 
   shellHook = ''
     export G_WORD_BOT_TOKEN=${(import <secrets>).g-word-bot-telegram-token-devt};
-    export G_WORD_BOT_LEGACY_STATEFILE_LOC=./state.json
     export G_WORD_BOT_JOURNAL_LOC=./log.jsona
     export PATH="${nodejs}/bin:$PATH"
   '';

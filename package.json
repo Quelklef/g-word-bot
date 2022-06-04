@@ -17,7 +17,8 @@
   },
   "homepage": "https://github.com/quelklef/g-word-bot#readme",
   "dependencies": {
-    "telegraf": "^4.4.2",
-    "skim": "github:quelklef/skim#de176511d0b67e8b57b104e1b871c366dbbad9b7"
+    "node-fetch": "^3.2.5",
+    "skim": "github:quelklef/skim#de176511d0b67e8b57b104e1b871c366dbbad9b7",
+    "telegraf": "^4.4.2"
   }
 }
