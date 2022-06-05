@@ -213,7 +213,7 @@ bot.on('text', async ctx => {
   );
   if (doEncouragement) {
     ctx.reply(
-      `great job, ${fromUserName}, ${messagesSinceLastGWord} messages since last g-word!`,
+      `extremely done, ${fromUserName}; ${messagesSinceLastGWord} messages since last g-word!`,
       { reply_to_message_id: messageId }
     );
   }
