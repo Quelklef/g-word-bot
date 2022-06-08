@@ -98,7 +98,9 @@ function processUpdate(update) {
 
   const isPeifen = update?.message?.from?.id === 335752116;
   const isMaynard = update?.message?.from?.id === 679800187;
-  const positiveVibes = isPeifen;
+  const isNorman = update?.message?.from?.id === 953818142;
+  const positiveVibes = isPeifen || isNorman;
+  const isAdmin = isMaynard;
 
   const messageId = update.message.message_id;
   const chatId = update.message.chat.id;
@@ -107,7 +109,7 @@ function processUpdate(update) {
   const fromPingName = update?.message?.from?.username ?? update?.message?.from?.first_name;
     // ^ "ping name", ie, what they will be called when you @ them
 
-  return { text, hasGWord, isPeifen, isMaynard, positiveVibes, messageId, chatId, fromUserId, fromUserName, fromPingName };
+  return { text, hasGWord, positiveVibes, isAdmin, messageId, chatId, fromUserId, fromUserName, fromPingName };
 }
 
 
@@ -119,7 +121,7 @@ bot.on('text', async ctx => {
   endog.push({ kind: 'tg-update', time: Date.now(), update });
   const state = endog.state;
 
-  const { text, hasGWord, isMaynard, positiveVibes, messageId, chatId, fromUserId, fromUserName }
+  const { text, hasGWord, isAdmin, positiveVibes, messageId, chatId, fromUserId, fromUserName }
         = processUpdate(update);
 
   if (positiveVibes && !hasGWord && (Math.random() < 0.02)) {
@@ -146,7 +148,7 @@ bot.on('text', async ctx => {
     ctx.reply(response, { reply_to_message_id: messageId });
   }
 
-  if (text.startsWith('!geval') && isMaynard) {
+  if (text.startsWith('!geval') && isAdmin) {
     const code = text.slice('!geval'.length);
     let response;
     try {
