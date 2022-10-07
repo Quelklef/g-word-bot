@@ -187,7 +187,7 @@ bot.on('text', async ctx => {
     }
 
     if (parsed === null) {
-      ctx.reply('Bad invocation!', { reply_to_message_id: update.message.message_id });
+      ctx.reply('Bad invocation! Syntax: !infer from @<username> ?<json>', { reply_to_message_id: update.message.message_id });
       break infer;
     }
 
